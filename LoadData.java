@@ -1,70 +1,23 @@
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.*;
-import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Scanner;
+import java.util.Iterator;
 
 public class LoadData {
     static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
     static final String DB_URL = "jdbc:mysql://localhost/jdbc_example";
 
     static final String USER = "root";
-    static final String PASSWORD = "hr6j!umC@AyR";
-
-//    public static void insertMenu(Connection conn, String filename) {
-//        PreparedStatement statement = null;
-//        String insertQuery = "INSERT INTO Menu VALUES (?, ?, ?)";
-//        try{
-//            statement = conn.prepareStatement(insertQuery);
-//            // setXXX() methods to set the values of these ?
-//            statement.setString(1, "Coffee");
-//            statement.setString(2, "Coffee");
-//            statement.setDouble(3, 5);
-//            System.out.println(statement);
-//            // to execute the statement,
-//            // executeQuery() -> return a ResultSet
-//            // executeUpdate() -> to update the database without returning a ResultSet
-//            // instead, it returns an integer that tells us how many records in the
-//            // database were affected
-//            statement.executeUpdate();
-//        }catch (SQLException ex){
-//            ex.printStackTrace();
-//        }
-
-//		// Reading from the csv file
-//		List<List<String>> menuRecords = new ArrayList<>();
-//		try (Scanner scanner = new Scanner(new File("menu.csv"));) {
-//		    while (scanner.hasNextLine()) {
-//		    	menuRecords.add(getRecordFromLine(scanner.nextLine()));
-//		    }
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//
-//    }
-
-//    public static void insertOrders(Connection conn, String filename) {
-//
-//        // Reading from the csv file
-//
-//        List<List<String>> orderRecords = new ArrayList<>();
-//        try (Scanner scanner = new Scanner(new File("order.csv"));) {
-//            while (scanner.hasNextLine()) {
-//                orderRecords.add(getRecordFromLine(scanner.nextLine()));
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    static final String PASSWORD = "<mySql password>";
 
     public static void createDatabase(Connection conn){
         PreparedStatement statement = null;
@@ -99,6 +52,18 @@ public class LoadData {
                 "  stars decimal (2,1),\n" +
                 "  category varchar(1000),\n" +
                 "  Primary key(business_id))";
+        try{
+            statement = conn.prepareStatement(createTable);
+            System.out.println(statement);
+            statement.executeUpdate();
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public static void deleteDatabase(Connection conn){
+        PreparedStatement statement = null;
+        String createTable = "DROP DATABASE YelpDemo;";
         try{
             statement = conn.prepareStatement(createTable);
             System.out.println(statement);
@@ -150,28 +115,55 @@ public class LoadData {
         return data;
     }
 
+    public static void insertBusinesses(Connection conn, HashSet<String[]> data){
+        PreparedStatement statement = null;
+        String insertQuery = "INSERT INTO Business VALUES (?, ?, ?, ?, ?)";
+        try{
+            // business_id, name, review_count, stars, and category
+            Iterator<String[]> it = data.iterator();
+            while (it.hasNext()) {
+                String[] fields = it.next();
+                statement = conn.prepareStatement(insertQuery);
+                statement.setString(1, fields[0]);
+                statement.setString(2, fields[1]);
+                statement.setLong(3, Long.parseLong(fields[2]));
+                statement.setDouble(4, Double.parseDouble(fields[3]));
+                statement.setString(5, fields[4]);
+                System.out.println(statement);
+                statement.executeUpdate();
+            }
+        }catch (SQLException ex){
+            ex.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) {
         Connection conn = null;
-        Statement statement = null;
 
         // open a connection
-        // execute a query -> constructed with String concatenation
         try{
             System.out.println("Connecting to database ...");
             conn = DriverManager.getConnection(DB_URL, USER, PASSWORD);
             System.out.println("Connection established ...");
 
             // Create Database
-//            createDatabase(conn);
+            createDatabase(conn);
 
             // Choose Database
             pickDB(conn);
 
             // Get JSON Data
-            HashSet<String[]> data = readJSON("/Users/macintosh/IdeaProjects/JDBCYelpTutorial/src/business_struct.json");
+            HashSet<String[]> data = readJSON("<file_path>");
+
+            // Import Data to mySql
+            insertBusinesses(conn, data);
 
             // Create Businesses Table
-//            createBusinessTable(conn);
+            createBusinessTable(conn);
+
+            // Delete Database
+            deleteDatabase(conn);
+
         }catch(SQLException ex){
             ex.printStackTrace();
         }
